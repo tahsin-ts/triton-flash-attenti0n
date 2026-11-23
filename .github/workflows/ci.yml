@@ -1,0 +1,23 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  numpy-reference:            # the algorithm, checked against naive attention
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install numpy pytest
+      - run: pytest -q tests/test_reference.py
+  triton-interpreter:         # the real Triton kernel, run by Triton's CPU interpreter (no GPU on hosted runners)
+    runs-on: ubuntu-24.04
+    env:
+      TRITON_INTERPRET: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install triton numpy pytest
+      - run: python -c "import torch, triton; print('torch', torch.__version__, 'triton', triton.__version__)"
+      - run: pytest -q tests/test_triton.py -rs
